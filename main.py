@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.options import Options
 import os
 import re
 import csv
+import urllib.request
 
 
 def valid_link(link, domain):
@@ -20,6 +21,18 @@ def valid_link(link, domain):
     if domain in link.split("."):
         return True
     return False
+
+
+def find_last_name(url):
+
+    '''
+        Returns string between last and second-last '/'
+    '''
+
+    if url[-1] == '/':
+        url = url[:-1]
+
+    return url.split('/')[-1]
 
 
 class Webpage(object):
@@ -56,6 +69,11 @@ class Webpage(object):
         '''
 
         page_links = self.driver.find_elements_by_xpath("//a[@href]")
+
+        if len(page_links) == 0:
+            print("No links found!")
+            return
+
         links = []
         for link_el in page_links:
             link = link_el.get_attribute("href")
@@ -111,6 +129,9 @@ class Webpage(object):
         '''
 
         tables = self.driver.find_elements_by_tag_name("table")
+        if len(tables) == 0:
+            print("No tables found!")
+            return
 
         if end != None:
             tables = tables[start:end]
@@ -133,14 +154,48 @@ class Webpage(object):
 
     
     def get_tables_as_csv(self, start=None, end=None):
+
+        '''
+            Get Tables and save as csv file
+        '''
+
         content = self.get_tables_as_list(start, end)
+
+        if len(content) == 0:
+            print("No tables found!")
+            return
 
         with open(self.domain + "-tables.csv", "w", newline="") as new_file:
             csv_writer = csv.writer(new_file)
 
             for table in content:
-                empty=""
+                empty = ""
                 for row in table:
                     csv_writer.writerow(row)
                 csv_writer.writerow(empty)
+
+    
+    def get_images(self):
+        
+        '''
+            Get all images from the website
+        '''
+
+        images = self.driver.find_elements_by_tag_name("img")
+
+        if len(images) == 0:
+            print("No images found!")
+            return
+
+        try:
+            os.mkdir(find_last_name(self.url) + "-images")
+        except:
+            pass
+        index = 1
+        for img in images:
+            src = img.get_attribute('src')
+            urllib.request.urlretrieve(src, "./" + find_last_name(self.url) + "-images/" + find_last_name(src))
+            index += 1
+        
+
 
